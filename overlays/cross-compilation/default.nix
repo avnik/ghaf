@@ -9,5 +9,6 @@
     (import ./element-desktop.nix)
     (import ./perl.nix)
     (import ./libjack.nix)
+    (import ./edk2.nix)
   ];
 }
