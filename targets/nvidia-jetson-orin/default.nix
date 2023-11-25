@@ -73,7 +73,7 @@
                 debug.enable = variant == "debug";
               };
               # TODO when supported on x86 move under virtualization
-              windows-launcher.enable = true;
+              windows-launcher.enable = false;
             };
           }
 
