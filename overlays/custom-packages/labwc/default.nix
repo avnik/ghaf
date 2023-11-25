@@ -5,6 +5,13 @@
 #
 (final: prev: {
   labwc = prev.labwc.overrideAttrs (prevAttrs: {
+    # Use patch for titlebars. FIXME: make it a patch, not a fork from random point commit
+    src = prev.fetchFromGitHub {
+      owner = "dmitry-erin";
+      repo = "labwc";
+      rev = "ba86ef2e8a6ee364062a202aa1e562953edd738f";
+      sha256 = "sha256-FA2rzVwFlF1+/pDi1aPneBPmYI6NPe/Pr7zBJVYlsJk=";
+    };
     buildInputs = with final;
       [
         foot
