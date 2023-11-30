@@ -11,5 +11,6 @@
     (import ./libjack.nix)
     (import ./edk2.nix)
     (import ./jbig2dec.nix)
+    (import ./firefox.nix)
   ];
 }
