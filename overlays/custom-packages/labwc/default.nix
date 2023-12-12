@@ -12,27 +12,17 @@
       rev = "ba86ef2e8a6ee364062a202aa1e562953edd738f";
       sha256 = "sha256-FA2rzVwFlF1+/pDi1aPneBPmYI6NPe/Pr7zBJVYlsJk=";
     };
-    buildInputs = with final;
-      [
-        foot
-        swaybg
-        kanshi
-        waybar
-        mako
-        swayidle
-      ]
-      ++ prevAttrs.buildInputs;
-    preInstallPhases = ["preInstallPhase"];
-    preInstallPhase = ''
+
+    preInstall = ''
       substituteInPlace ../docs/autostart \
-       --replace swaybg ${final.swaybg}/bin/swaybg \
-       --replace kanshi ${final.kanshi}/bin/kanshi \
-       --replace waybar ${final.waybar}/bin/waybar \
-       --replace mako ${final.mako}/bin/mako \
-       --replace swayidle ${final.swayidle}/bin/swayidle
+        --replace swaybg ${final.swaybg}/bin/swaybg \
+        --replace kanshi ${final.kanshi}/bin/kanshi \
+        --replace waybar ${final.waybar}/bin/waybar \
+        --replace mako ${final.mako}/bin/mako \
+        --replace swayidle ${final.swayidle}/bin/swayidle
 
        substituteInPlace ../docs/menu.xml \
-       --replace alacritty ${final.foot}/bin/foot
+         --replace alacritty ${final.foot}/bin/foot
 
        chmod +x ../docs/autostart
     '';
