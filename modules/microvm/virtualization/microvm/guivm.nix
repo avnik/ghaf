@@ -99,7 +99,7 @@ let
             };
 
           environment = {
-            systemPackages =
+            systemPackages = 
               (rmDesktopEntries [
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
@@ -108,6 +108,7 @@ let
                 pkgs.nm-launcher
                 pkgs.pamixer
               ]
+              ++[inputs.ctrl-panel.packages.${pkgs.system}.default]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)

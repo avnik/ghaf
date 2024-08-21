@@ -1,18 +1,12 @@
 {
   "nodes": {
     "crane": {
-      "inputs": {
-        "nixpkgs": [
-          "givc",
-          "nixpkgs"
-        ]
-      },
       "locked": {
-        "lastModified": 1720975002,
-        "narHash": "sha256-1i521ecK2MFg+lxSk9oRx/C0SsdlI6GS6eYT79nA6TA=",
+        "lastModified": 1725125250,
+        "narHash": "sha256-CB20rDD5eHikF6mMTTJdwPP1qvyoiyyw1RDUzwIaIF8=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "1791a5b98d2c1bf143ad85469abcfa2426f3f087",
+        "rev": "96fd12c7100e9e05fa1a0a5bd108525600ce282f",
         "type": "github"
       },
       "original": {
@@ -39,6 +33,34 @@
       "original": {
         "owner": "ipetkov",
         "repo": "crane",
+        "type": "github"
+      }
+    },
+    "ctrl-panel": {
+      "inputs": {
+        "crane": [
+          "givc",
+          "crane"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1724936241,
+        "narHash": "sha256-4qD06Dmt4T0+oMVoJSjcmEMl5U9Lb9WEC1wmJrbON+U=",
+        "owner": "tiiuae",
+        "repo": "ghaf-ctrl-panel",
+        "rev": "f15e6ef53f2485077933b7558374228453e9a8e1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "ref": "v1.0.0",
+        "repo": "ghaf-ctrl-panel",
         "type": "github"
       }
     },
@@ -498,6 +520,7 @@
     },
     "root": {
       "inputs": {
+        "ctrl-panel": "ctrl-panel",
         "devshell": "devshell",
         "disko": "disko",
         "flake-compat": "flake-compat",
