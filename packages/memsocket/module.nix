@@ -30,6 +30,9 @@ stdenv.mkDerivation {
     "KDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
     "MODULEDIR=$(out)/lib/modules/${kernel.modDirVersion}/kernel/drivers/char"
     "CFLAGS_kvm_ivshmem.o=\"-DCONFIG_KVM_IVSHMEM_SHM_SLOTS=${builtins.toString shmSlots}\""
+  ] ++ lib.optionals (stdenv.buildPlatform != stdenv.hostPlatform) [
+    "ARCH=${stdenv.hostPlatform.linuxArch}"
+    "CROSS_COMPILE=${stdenv.cc.targetPrefix}"
   ];
 
   meta = with lib; {
