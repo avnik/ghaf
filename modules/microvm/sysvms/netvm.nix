@@ -136,6 +136,12 @@ let
                 mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
+              {
+                tag = "sysupdate";
+                source = "/persist/sysupdate";
+                mountPoint = "/persist/sysupdate";
+                proto = "virtiofs";
+              }
             ];
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
