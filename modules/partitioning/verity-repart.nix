@@ -55,6 +55,8 @@ in
           # FIXME: Make erofs as separate artifact
           storePaths = [ config.system.build.toplevel ];
           repartConfig = config.systemd.repart.partitions."10-root-a" // {
+            Minimize = "best";
+            ReadOnly = true;
             # Create directories needed for nixos activation, as these cannot be
             # created on a read-only filesystem.
             MakeDirectories = toString [

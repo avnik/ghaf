@@ -20,7 +20,7 @@ in
     split = lib.mkOption {
       description = "Whether to split the partitions to separate files instead of a single image";
       type = lib.types.bool;
-      default = false;
+      default = true;
     };
 
     sysupdate = lib.mkOption {
@@ -128,20 +128,6 @@ in
           options = [ "ro" ];
           device = "/dev/mapper/root";
         };
-
-        # FIXME: merge with definition in repart-common.nix
-        "/persist" =
-          let
-            partConf = config.image.repart.partitions."50-persist".repartConfig;
-          in
-          {
-            device =
-              if config.ghaf.storage.encryption.enable then
-                "/dev/mapper/persist"
-              else
-                "/dev/disk/by-partuuid/${partConf.UUID}";
-            fsType = partConf.Format;
-          };
       }
       // builtins.listToAttrs (
         map
