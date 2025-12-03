@@ -33,6 +33,7 @@ in
       "11-root-verity-a" = {
         Type = "root-verity";
         Label = "root-verity-a";
+        SplitName = "verity";
         Verity = "hash";
         VerityMatchKey = "${definition.root.label}";
         SizeMinBytes = "8G";
@@ -68,8 +69,9 @@ in
         Label = definition.persist.label;
         Format = "btrfs";
         SizeMinBytes = definition.persist.size;
-        MakeDirectories = builtins.toString [
+        MakeDirectories = toString [
           "/storagevm"
+          "/sysupdate"
         ];
         UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
         # When Encrypt is "key-file" and the key file isn't specified, the

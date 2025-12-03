@@ -26,7 +26,7 @@ in
     sysupdate = lib.mkOption {
       description = "Enable systemd sysupdate";
       type = lib.types.bool;
-      default = false;
+      default = true;
     };
   };
 
@@ -36,33 +36,87 @@ in
   ];
 
   config = lib.mkIf cfg.enable {
+    /*
+        system.build.ghafImage = config.system.build.image.overrideAttrs (oldAttrs: {
+          nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.jq ];
+          postInstall = ''
+            # Extract the roothash from the JSON
+            repartRoothash="$(
+              ${lib.getExe pkgs.jq} -r \
+                '[.[] | select(.roothash != null)] | .[0].roothash' \
+                "$out/repart-output.json"
+            )"
 
-    system.build.ghafImage = config.system.build.image.overrideAttrs (oldAttrs: {
-      nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.jq ];
-      postInstall = ''
-        # Extract the roothash from the JSON
-        repartRoothash="$(
-          ${lib.getExe pkgs.jq} -r \
-            '[.[] | select(.roothash != null)] | .[0].roothash' \
-            "$out/repart-output.json"
-        )"
+            # Replace the placeholder with the real roothash in the target .raw file
+            sed -i \
+              "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$repartRoothash/" \
+              "$out/${oldAttrs.pname}_${oldAttrs.version}.raw"
 
-        # Replace the placeholder with the real roothash in the target .raw file
-        sed -i \
-          "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$repartRoothash/" \
-          "$out/${oldAttrs.pname}_${oldAttrs.version}.raw"
+            # Compress the image
+            ${pkgs.zstd}/bin/zstd --compress $out/*raw
+            rm $out/*raw
+          '';
+        });
+    */
+    system.build.ghafImage =
+      let
+        inherit (config.ghaf) version;
+        id = "ghaf";
+        fsImage = "$out/root_${version}.raw";
+        verityImage = "$out/${id}_verity_${version}.raw";
+        kernelImage = "$out/${id}_kernel_${version}.efi";
+        mkfsCommand = "mkfs.erofs -T 1 --all-root -L nix-store --mount-point=/nix/store ${fsImage} --hard-dereference --tar=f";
+        regInfo = pkgs.closureInfo {
+          rootPaths = [ config.system.build.toplevel ];
+        };
+      in
+      pkgs.runCommandLocal "ghaf-sysupdate-image"
+        {
+          nativeBuildInputs = [
+            pkgs.buildPackages.time
+            pkgs.buildPackages.gnutar
+            pkgs.buildPackages.erofs-utils
+            pkgs.buildPackages.cryptsetup
+          ];
+          passthru = {
+            inherit regInfo;
+          };
+          __structuredAttrs = true;
+          unsafeDiscardReferences.out = true;
+        }
+        ''
+          mkdir $out
+          echo Creating a store image
+          tar --create \
+            --absolute-names \
+            --verbatim-files-from \
+            --transform 'flags=rSh;s|/nix/store/||' \
+            --transform 'flags=rSh;s|~nix~case~hack~[[:digit:]]\+||g' \
+            --files-from ${regInfo}/store-paths \
+            | time ${mkfsCommand}
 
-        # Compress the image
-        ${pkgs.zstd}/bin/zstd --compress $out/*raw
-        rm $out/*raw
-      '';
-    });
+          # Align file to block boundary
+          truncate -s %4096 ${fsImage}
+
+          echo Creating verity image
+          time veritysetup format --root-hash-file $out/dm-verity-root-hash ${fsImage} ${verityImage}
+          # Align file to block boundary
+          truncate -s %4096 ${verityImage}
+
+          cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} ${kernelImage}
+
+          # Replace the placeholder with the real roothash in the target .raw file
+          verityRoothash=$(cat $out/dm-verity-root-hash)
+          sed -i \
+            "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$verityRoothash/" \
+            ${kernelImage}
+        '';
 
     image.repart.split = cfg.split;
 
     boot = {
       kernelParams = [
-        "roothash=${roothashPlaceholder}"
+        "storehash=${roothashPlaceholder}"
         "systemd.verity_root_options=panic-on-corruption"
       ]
       ++ lib.optional debugEnable "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
@@ -79,6 +133,7 @@ in
           enable = true;
           dmVerity.enable = true;
         };
+        nix-store-veritysetup.enable = true;
 
         compressor = "zstd";
         compressorArgs = [ "-6" ];

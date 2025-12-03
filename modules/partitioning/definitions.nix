@@ -91,7 +91,7 @@ in
       size = "64G";
       mountPoint = "/";
       fileSystem = config.ghaf.partitions.rootFilesystemType;
-      label = "root";
+      label = "root_0"; # Disko based install always have 0 version, a/b images have non-zero
     };
     persist = {
       size = "1G";

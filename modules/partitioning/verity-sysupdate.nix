@@ -3,28 +3,31 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
-  url = "https://github.com/tiiuae/ghaf/releases/latest/download";
+  url = "/persist/sysupdate";
   id = "ghaf";
   cfg = config.ghaf.partitioning.verity;
 in
 {
   config = lib.mkIf cfg.sysupdate {
+    ghaf.systemd.withSysupdate = true;
     # TODO: This is a placeholder for future implementation.
     systemd.sysupdate = {
       enable = true;
-      reboot.enable = true;
+      reboot.enable = false; # FIXME: no auto-reboot (at least temporary)
       transfers = {
+        # FIXME: update systemd boot as well
         "10-uki" = {
           Transfer = {
             Verify = "no";
           };
           Source = {
-            Type = "url-file";
+            Type = "regular-file";
             Path = url;
-            MatchPattern = "${config.boot.uki.name}_@v.efi";
+            MatchPattern = "${id}_kernel_@v.efi";
           };
           Target = {
             Type = "regular-file";
@@ -42,14 +45,14 @@ in
             Verify = "no";
           };
           Source = {
-            Type = "url-file";
+            Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_@v_@u.verity";
+            MatchPattern = "${id}_@v_verity.raw";
           };
           Target = {
             Type = "partition";
             Path = "auto";
-            MatchPattern = "verity-@v";
+            MatchPattern = "root-verity_@v";
             MatchPartitionType = "root-verity";
             ReadOnly = 1;
           };
@@ -59,27 +62,27 @@ in
             Verify = "no";
           };
           Source = {
-            Type = "url-file";
+            Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_@v_@u.root";
+            MatchPattern = "${id}_root_@v.raw";
           };
           Target = {
             Type = "partition";
             Path = "auto";
-            MatchPattern = "root-@v";
+            MatchPattern = "root_@v";
             MatchPartitionType = "root";
             ReadOnly = 1;
           };
         };
       };
     };
-
-    #  https://github.com/NixOS/nixpkgs/pull/436893
-    #  https://github.com/NixOS/nixpkgs/pull/437869
-    #  TODO: remove the below these changes
-    # systemd.additionalUpstreamSystemUnits = [
-    #   "systemd-bless-boot.service"
-    #   "boot-complete.target"
-    # ];
+    environment.systemPackages = [
+      # this is only for running `systemd-sysupdate vacuum -m 1` becasue
+      # `updatectl vacuum` does not support the parameter `-m 1`
+      (pkgs.runCommand "systemd-extratools" { } ''
+        mkdir -p $out
+        ln -s ${config.systemd.package}/lib/systemd $out/bin
+      '')
+    ];
   };
 }

@@ -11,9 +11,6 @@ let
   cfg = config.ghaf.partitioning.verity;
   inherit (config.ghaf.partitions) definition;
   inherit (pkgs.stdenv.hostPlatform) efiArch;
-  repartConfig = lib.mapAttrs (_name: value: {
-    repartConfig = value;
-  }) config.systemd.repart.partitions;
 in
 {
 
@@ -22,7 +19,7 @@ in
       name = "ghaf";
       version = "0.0.1";
 
-      partitions = repartConfig // {
+      partitions = {
         # Overwrite esp and root
         "00-esp" = {
           contents = {
@@ -55,6 +52,7 @@ in
           # FIXME: Make erofs as separate artifact
           storePaths = [ config.system.build.toplevel ];
           repartConfig = config.systemd.repart.partitions."10-root-a" // {
+            Format = "erofs";
             Minimize = "best";
             ReadOnly = true;
             # Create directories needed for nixos activation, as these cannot be
