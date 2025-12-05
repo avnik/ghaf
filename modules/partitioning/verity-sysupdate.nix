@@ -14,6 +14,7 @@ in
 {
   config = lib.mkIf cfg.sysupdate {
     ghaf.systemd.withSysupdate = true;
+    ghaf.systemd.withMachines = true;
     # TODO: This is a placeholder for future implementation.
     systemd.sysupdate = {
       enable = true;
@@ -47,7 +48,7 @@ in
           Source = {
             Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_@v_verity.raw";
+            MatchPattern = "${id}_@v_verity.raw.zst";
           };
           Target = {
             Type = "partition";
@@ -64,7 +65,7 @@ in
           Source = {
             Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_root_@v.raw";
+            MatchPattern = "${id}_root_@v.raw.zst";
           };
           Target = {
             Type = "partition";

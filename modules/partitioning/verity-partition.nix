@@ -62,7 +62,7 @@ in
       let
         inherit (config.ghaf) version;
         id = "ghaf";
-        fsImage = "$out/root_${version}.raw";
+        fsImage = "$out/${id}_root_${version}.raw";
         verityImage = "$out/${id}_verity_${version}.raw";
         kernelImage = "$out/${id}_kernel_${version}.efi";
         mkfsCommand = "mkfs.erofs -T 1 --all-root -L nix-store --mount-point=/nix/store ${fsImage} --hard-dereference --tar=f";
@@ -110,6 +110,10 @@ in
           sed -i \
             "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$verityRoothash/" \
             ${kernelImage}
+
+          # Compress the image
+          ${pkgs.zstd}/bin/zstd --compress $out/*raw
+          rm -f $out/*raw
         '';
 
     image.repart.split = cfg.split;
