@@ -118,9 +118,10 @@ in
 
     image.repart.split = cfg.split;
 
+    ghaf.graphics.boot.enable = lib.mkForce false; # FIXME: temporary
     boot = {
       kernelParams = [
-        "storehash=${roothashPlaceholder}"
+        "storehash=${roothashPlaceholder}" # See `nix-store-veritysetup.enable` for details
         "systemd.verity_root_options=panic-on-corruption"
       ]
       ++ lib.optional debugEnable "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
@@ -172,37 +173,21 @@ in
       }
     ];
 
-    fileSystems =
-      let
-        tmpfsConfig = {
-          neededForBoot = true;
-          fsType = "tmpfs";
-        };
-      in
-      {
-        # FIXME: could we make / a tmpfs, and mount erofs as /nix/store?
-        "/" = {
-          fsType = "erofs";
-          # for systemd-remount-fs
-          options = [ "ro" ];
-          device = "/dev/mapper/root";
-        };
-      }
-      // builtins.listToAttrs (
-        map
-          (pathDir: {
-            name = pathDir;
-            value = tmpfsConfig;
-          })
-          [
-            "/bin" # /bin/sh symlink needs to be created
-            "/etc"
-            "/home"
-            "/root"
-            "/tmp"
-            "/usr" # /usr/bin/env symlink needs to be created
-            "/var"
-          ]
-      );
+    fileSystems = {
+      "/" = {
+        device = "none";
+        fsType = "tmpfs";
+        options = [
+          "size=10%"
+          "mode=755"
+        ];
+      };
+      "/nix/store" = {
+        fsType = "erofs";
+        # for systemd-remount-fs
+        options = [ "ro" ];
+        device = "/dev/mapper/root";
+      };
+    };
   };
 }

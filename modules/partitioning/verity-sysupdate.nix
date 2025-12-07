@@ -48,7 +48,7 @@ in
           Source = {
             Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_@v_verity.raw.zst";
+            MatchPattern = "${id}_verity_@v.raw.zst";
           };
           Target = {
             Type = "partition";
@@ -81,8 +81,8 @@ in
       # this is only for running `systemd-sysupdate vacuum -m 1` becasue
       # `updatectl vacuum` does not support the parameter `-m 1`
       (pkgs.runCommand "systemd-extratools" { } ''
-        mkdir -p $out
-        ln -s ${config.systemd.package}/lib/systemd $out/bin
+        mkdir -p $out/bin
+        ln -s ${config.systemd.package}/lib/systemd-sysupdate $out/bin
       '')
     ];
   };
