@@ -119,6 +119,13 @@ in
     image.repart.split = cfg.split;
 
     ghaf.graphics.boot.enable = lib.mkForce false; # FIXME: temporary
+    nixpkgs.overlays = [
+      (_final: prev: {
+        nix-store-veritysetup-generator = prev.nix-store-veritysetup-generator.override {
+          systemd = config.boot.initrd.systemd.package;
+        };
+      })
+    ];
     boot = {
       kernelParams = [
         "storehash=${roothashPlaceholder}" # See `nix-store-veritysetup.enable` for details
@@ -137,6 +144,10 @@ in
         systemd = {
           enable = true;
           dmVerity.enable = true;
+          #          storePaths = [
+          #            pkgs.nix-store-veritysetup-generator.SYSTEMD_VERITYSETUP_PATH
+          #            pkgs.nix-store-veritysetup-generator.SYSTEMD_ESCAPE_PATH
+          #          ];
         };
         nix-store-veritysetup.enable = true;
 
