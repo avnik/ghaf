@@ -62,8 +62,8 @@ in
       let
         inherit (config.ghaf) version;
         id = "ghaf";
-        fsImage = "$out/${id}_root_${version}.raw";
-        verityImage = "$out/${id}_verity_${version}.raw";
+        fsImage = "$out/${id}_root_${version}_@u.raw";
+        verityImage = "$out/${id}_verity_${version}_@u.raw";
         kernelImage = "$out/${id}_kernel_${version}.efi";
         mkfsCommand = "mkfs.erofs -T 1 --all-root -L nix-store --mount-point=/nix/store ${fsImage} --hard-dereference --tar=f";
         regInfo = pkgs.closureInfo {
@@ -111,8 +111,11 @@ in
             "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$verityRoothash/" \
             ${kernelImage}
 
+          # Inject UUIDs to file names
+          ${pkgs.buildPackages.python3}/bin/python ${./inject-uuids.py} $out/dm-verity-root-hash ${fsImage} ${verityImage}
+
           # Compress the image
-          ${pkgs.zstd}/bin/zstd --compress $out/*raw
+          ${pkgs.buildPackages.zstd}/bin/zstd --compress $out/*raw
           rm -f $out/*raw
         '';
 

@@ -48,13 +48,14 @@ in
           Source = {
             Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_verity_@v.raw.zst";
+            MatchPattern = "${id}_verity_@v_@u.raw.zst";
           };
           Target = {
             Type = "partition";
             Path = "auto";
             MatchPattern = "root-verity_@v";
             MatchPartitionType = "root-verity";
+            PartitionUUID = "@u";
             ReadOnly = 1;
           };
         };
@@ -65,13 +66,14 @@ in
           Source = {
             Type = "regular-file";
             Path = url;
-            MatchPattern = "${id}_root_@v.raw.zst";
+            MatchPattern = "${id}_root_@v_@u.raw.zst";
           };
           Target = {
             Type = "partition";
             Path = "auto";
             MatchPattern = "root_@v";
             MatchPartitionType = "root";
+            PartitionUUID = "@u";
             ReadOnly = 1;
           };
         };
