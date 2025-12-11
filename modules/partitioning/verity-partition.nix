@@ -112,6 +112,8 @@ in
             ${kernelImage}
 
           # Inject UUIDs to file names
+          # UUIDs derived from verity hash: left half go for store, right for verity, later they used by nix-store-veritysetup-generator to find partitions
+          # (see ./inject-uuids.py for implementation details)
           ${pkgs.buildPackages.python3}/bin/python ${./inject-uuids.py} $out/dm-verity-root-hash ${fsImage} ${verityImage}
 
           # Compress the image
@@ -122,8 +124,12 @@ in
     image.repart.split = cfg.split;
 
     ghaf.graphics.boot.enable = lib.mkForce false; # FIXME: temporary
+
+    # FIXME: Remove overlay when/if https://github.com/NixOS/nixpkgs/pull/468940 merged
     nixpkgs.overlays = [
       (_final: prev: {
+        # nix-store-veritysetup-generator should be built against same systemd that used in initrd
+        # FIXME: upstream it!
         nix-store-veritysetup-generator = prev.nix-store-veritysetup-generator.override {
           systemd = config.boot.initrd.systemd.package;
         };
@@ -147,10 +153,6 @@ in
         systemd = {
           enable = true;
           dmVerity.enable = true;
-          #          storePaths = [
-          #            pkgs.nix-store-veritysetup-generator.SYSTEMD_VERITYSETUP_PATH
-          #            pkgs.nix-store-veritysetup-generator.SYSTEMD_ESCAPE_PATH
-          #          ];
         };
         nix-store-veritysetup.enable = true;
 
@@ -200,7 +202,7 @@ in
         fsType = "erofs";
         # for systemd-remount-fs
         options = [ "ro" ];
-        device = "/dev/mapper/root";
+        device = "/dev/mapper/nix-store"; # volume name `nix-store` hardcoded in `nix-store-veritysetup-generator`
       };
     };
   };
