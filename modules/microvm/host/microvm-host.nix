@@ -45,6 +45,7 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
+    ./tpm-mux.nix
     ./vtpm-proxy.nix
   ];
 

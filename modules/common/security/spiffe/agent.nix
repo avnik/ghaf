@@ -38,6 +38,7 @@ let
     plugins {
       NodeAttestor "tpm_devid" {
         plugin_data {
+          tpm_device_path = "/dev/tpm0"
           devid_cert_path = "${cfg.tpmDevid.certPath}"
           devid_priv_path = "${cfg.tpmDevid.privPath}"
           devid_pub_path = "${cfg.tpmDevid.pubPath}"
@@ -85,6 +86,13 @@ let
       if [ -f "${cfg.tpmDevid.certPath}" ] && \
          [ -f "${cfg.tpmDevid.privPath}" ] && \
          [ -f "${cfg.tpmDevid.pubPath}" ]; then
+        if [ -d "${cfg.dataDir}" ] && grep -Rqs "/spire/agent/join_token/" "${cfg.dataDir}" 2>/dev/null; then
+          echo "Join-token SVID cache detected, resetting SPIRE agent state for tpm_devid"
+          for entry in "${cfg.dataDir}"/* "${cfg.dataDir}"/.[!.]* "${cfg.dataDir}"/..?*; do
+            [ -e "$entry" ] || continue
+            rm -rf "$entry"
+          done
+        fi
         echo "DevID files found, using tpm_devid attestation"
         ln -sf /etc/spire/agent-tpm-devid.conf /run/spire/agent.conf
       else
@@ -283,7 +291,7 @@ in
           "/run/spire"
         ]
         ++ lib.optionals useTpmDevid [
-          "/dev/tpmrm0"
+          "/dev/tpm0"
         ];
       };
     };
