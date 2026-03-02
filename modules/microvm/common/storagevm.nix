@@ -133,40 +133,38 @@ in
                   exit 0
                 fi
 
-                # Wait for the TPM owner hierarchy to become accessible (max 60s).
-                # The host re-enables it after VM initrd LUKS operations complete.
-                TPM_READY=0
-                for attempt in $(seq 1 30); do
-                  if tpm2_createprimary -C owner -c /tmp/tpm-hierarchy-test.ctx -Q 2>/dev/null; then
-                    rm -f /tmp/tpm-hierarchy-test.ctx
-                    echo "TPM owner hierarchy is accessible"
-                    TPM_READY=1
-                    break
-                  fi
-                  rm -f /tmp/tpm-hierarchy-test.ctx
-                  echo "Waiting for TPM owner hierarchy... ($attempt/30)"
-                  sleep 2
-                done
-                if [ "$TPM_READY" -eq 0 ]; then
-                  TPM_ERR=$(tpm2_createprimary -C owner -c /tmp/tpm-hierarchy-test.ctx -Q 2>&1) || true
-                  rm -f /tmp/tpm-hierarchy-test.ctx
-                  echo "TPM owner hierarchy not accessible after 60s: $TPM_ERR"
-                  echo "Skipping TPM enrollment — LUKS will use password-only unlock"
-                  exit 0
-                fi
-
                 ${lib.optionalString tpm.passthrough.enable ''
                   tpm2_evictcontrol -C owner -c ${tpm.passthrough.rootNVIndex} || true
                   tpm2_createprimary -C owner -c storage.ctx
                   tpm2_evictcontrol -C owner -c storage.ctx ${tpm.passthrough.rootNVIndex}
                 ''}
-                # temporary file to pass an empty passphrase to cryptenroll
-                echo -n > temp_keyfile
-                chmod 600 temp_keyfile
-                systemd-cryptenroll --unlock-key-file=temp_keyfile \
-                  --tpm2-device=/dev/tpmrm0 --tpm2-pcrs="${cfg.encryption.pcrs}" \
-                  ${lib.optionalString tpm.passthrough.enable "--tpm2-seal-key-handle=${tpm.passthrough.rootNVIndex}"} "${drivePath}"
-                rm temp_keyfile
+
+                ENROLL_OK=0
+                ENROLL_ERR=""
+                for attempt in $(seq 1 30); do
+                  # temporary file to pass an empty passphrase to cryptenroll
+                  echo -n > temp_keyfile
+                  chmod 600 temp_keyfile
+
+                  if ENROLL_ERR=$(systemd-cryptenroll --unlock-key-file=temp_keyfile \
+                    --tpm2-device=/dev/tpmrm0 --tpm2-pcrs="${cfg.encryption.pcrs}" \
+                    ${lib.optionalString tpm.passthrough.enable "--tpm2-seal-key-handle=${tpm.passthrough.rootNVIndex}"} "${drivePath}" 2>&1); then
+                    rm -f temp_keyfile
+                    ENROLL_OK=1
+                    break
+                  fi
+
+                  rm -f temp_keyfile
+                  echo "Waiting for TPM enrollment readiness... ($attempt/30)"
+                  sleep 2
+                done
+
+                if [ "$ENROLL_OK" -ne 1 ]; then
+                  echo "TPM enrollment unavailable after retries: $ENROLL_ERR"
+                  echo "Skipping TPM enrollment — LUKS will use password-only unlock"
+                  exit 0
+                fi
+
                 ${lib.optionalString (!cfg.encryption.keepDefaultPassword) ''
                   echo 'Wiping password slot'
                   systemd-cryptenroll --wipe-slot=password "${drivePath}"

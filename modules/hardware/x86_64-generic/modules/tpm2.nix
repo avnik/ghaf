@@ -24,14 +24,7 @@ let
       echo "Trying $dev ..."
       export TPM2TOOLS_TCTI="$tcti"
 
-      # Test if owner hierarchy is usable on this device
-      if tpm2_createprimary -C owner -c /tmp/tpm-test.ctx -Q 2>/dev/null; then
-        rm -f /tmp/tpm-test.ctx
-        echo "TPM owner hierarchy is accessible via $dev"
-        exit 0
-      fi
-
-      echo "Owner hierarchy locked on $dev — attempting recovery via platform hierarchy"
+      echo "Attempting owner hierarchy recovery via platform hierarchy on $dev"
 
       # Try re-enabling owner and endorsement hierarchies via PH
       if tpm2_hierarchycontrol -C platform ownerEnable set 2>/dev/null; then
@@ -40,14 +33,7 @@ let
           && echo "Endorsement hierarchy re-enabled via $dev" \
           || echo "WARNING: Could not re-enable endorsement hierarchy via $dev"
 
-        # Verify createprimary works after re-enable
-        if tpm2_createprimary -C owner -c /tmp/tpm-test.ctx -Q 2>/dev/null; then
-          rm -f /tmp/tpm-test.ctx
-          echo "Owner hierarchy confirmed working after re-enable"
-          exit 0
-        fi
-        rm -f /tmp/tpm-test.ctx
-        echo "Owner hierarchy still not usable after re-enable"
+        exit 0
       fi
 
       # Last resort: factory-reset TPM via platform hierarchy.

@@ -100,13 +100,24 @@ let
         # Match SPIRE/go-tpm SRKTemplateHighRSA as closely as possible.
         # Fallback keeps compatibility with older tpm2-tools variants.
         if timeout 15 tpm2_createprimary -C owner \
-          -G rsa2048:null:aes128cfb -g sha256 \
+          -G rsa2048:null:aes128cfb \
           -a "fixedtpm|fixedparent|sensitivedataorigin|userwithauth|restricted|decrypt|noda" \
           -c "$DEVID_DIR/primary.ctx" -Q 2>/dev/null; then
           return 0
         fi
 
         timeout 15 tpm2_createprimary -C owner -c "$DEVID_DIR/primary.ctx" -Q 2>/dev/null
+      }
+
+      wait_for_tpm_ready() {
+        for attempt in $(seq 1 30); do
+          if timeout 5 tpm2_getcap properties-fixed >/dev/null 2>&1; then
+            return 0
+          fi
+          echo "Waiting for TPM readiness... ($attempt/30)"
+          sleep 2
+        done
+        return 1
       }
 
       load_existing_devid_key() {
@@ -244,21 +255,27 @@ let
       else
         echo "Generating DevID key for $VM_NAME..."
 
-        # Wait for owner hierarchy access (max 60s).
-        TPM_READY=0
-        for attempt in $(seq 1 30); do
+        if ! wait_for_tpm_ready; then
+          echo "TPM not ready after 60s"
+          echo "Falling back to join_token attestation"
+          echo "no-tpm-ready" > /run/tpm/devid-status 2>/dev/null || true
+          exit 0
+        fi
+
+        PRIMARY_READY=0
+        for attempt in 1 2 3; do
           if create_srk_primary; then
-            TPM_READY=1
+            PRIMARY_READY=1
             break
           fi
           cleanup_contexts
-          echo "Waiting for TPM owner hierarchy... ($attempt/30)"
+          echo "Retrying primary creation... ($attempt/3)"
           sleep 2
         done
-        if [ "$TPM_READY" -eq 0 ]; then
-          echo "TPM owner hierarchy inaccessible after 60s"
+        if [ "$PRIMARY_READY" -eq 0 ]; then
+          echo "Unable to create SRK primary"
           echo "Falling back to join_token attestation"
-          echo "no-owner-hierarchy" > /run/tpm/devid-status 2>/dev/null || true
+          echo "createprimary-failed" > /run/tpm/devid-status 2>/dev/null || true
           exit 0
         fi
 
@@ -267,10 +284,10 @@ let
           -u "$TSS_PUB_BLOB" -r "$PRIV_BLOB" -c "$DEVID_DIR/devid.ctx" -Q 2>/dev/null; then
           KEY_CREATED=1
           echo "DevID key created with -G rsa2048:rsassa-sha256"
-        elif tpm2_create -C "$DEVID_DIR/primary.ctx" -G rsa2048:rsassa -g sha256 \
+        elif tpm2_create -C "$DEVID_DIR/primary.ctx" -G rsa2048:rsassa \
           -u "$TSS_PUB_BLOB" -r "$PRIV_BLOB" -c "$DEVID_DIR/devid.ctx" -Q 2>/dev/null; then
           KEY_CREATED=1
-          echo "DevID key created with -G rsa2048:rsassa -g sha256"
+          echo "DevID key created with -G rsa2048:rsassa"
         fi
         if [ "$KEY_CREATED" -ne 1 ]; then
           echo "Failed to create DevID key with supported tpm2_create syntaxes"

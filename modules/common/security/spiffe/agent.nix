@@ -103,6 +103,34 @@ let
       ln -sf /etc/spire/agent-join-token.conf /run/spire/agent.conf
     fi
   '';
+
+  tpmReadyWait = pkgs.writeShellScript "spire-agent-wait-tpm" ''
+    # Add small deterministic startup jitter so system VMs do not hammer TPM simultaneously.
+    if [ -r /etc/hostname ]; then
+      seed=$(${pkgs.coreutils}/bin/cksum /etc/hostname | ${pkgs.coreutils}/bin/cut -d' ' -f1)
+      delay=$((seed % 8))
+      ${pkgs.coreutils}/bin/sleep "$delay"
+    fi
+
+    export TPM2TOOLS_TCTI="device:/dev/tpm0"
+
+    ready_seq=0
+    for attempt in $(seq 1 30); do
+      if ${pkgs.coreutils}/bin/timeout 3 ${pkgs.tpm2-tools}/bin/tpm2_getcap properties-fixed >/dev/null 2>&1; then
+        ready_seq=$((ready_seq + 1))
+        if [ "$ready_seq" -ge 2 ]; then
+          exit 0
+        fi
+      else
+        ready_seq=0
+      fi
+
+      ${pkgs.coreutils}/bin/sleep 1
+    done
+
+    echo "WARNING: TPM readiness probe timed out; starting SPIRE agent anyway"
+    exit 0
+  '';
 in
 {
   _file = ./agent.nix;
@@ -273,7 +301,7 @@ in
           config.security.tpm2.tssGroup or "tss"
         ];
 
-        ExecStartPre = "+${agentConfSelector}";
+        ExecStartPre = lib.optionals useTpmDevid [ "+${tpmReadyWait}" ] ++ [ "+${agentConfSelector}" ];
         ExecStart = "${pkgs.spire}/bin/spire-agent run -config /run/spire/agent.conf";
 
         StateDirectory = "spire/agent";
