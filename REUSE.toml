@@ -33,7 +33,8 @@ path = [
   "modules/secureboot/keys/*",
   "modules/hardware/passthrough/pci-acs-override/0001-pci-add-pcie_acs_override-for-pci-passthrough.patch",
   "overlays/custom-packages/systemd/0001-pam_systemd_home-Use-PAM_TEXT_INFO-for-token-prompts.patch",
-  "overlays/custom-packages/spire/0001-remove-cloud-components-to-reduce-memory-footprint.patch"
+  "overlays/custom-packages/spire/0001-remove-cloud-components-to-reduce-memory-footprint.patch",
+  "overlays/cross-compilation/tpm2-pytss.patch",
 ]
 
 [[annotations]]

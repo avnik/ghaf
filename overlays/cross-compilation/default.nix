@@ -25,6 +25,18 @@
           })
         else
           python-prev.setuptools-rust;
+
+      # Backport of https://github.com/NixOS/nixpkgs/pull/495890, remove when PR merged and nixpkgs updated
+      tpm2-pytss =
+        if final.lib.systems.equals final.stdenv.buildPlatform final.stdenv.hostPlatform then
+          python-prev.tpm2-pytss
+        else
+          python-prev.tpm2-pytss.overrideAttrs (oldAttrs: {
+            patches =
+              (builtins.filter (p: !(final.lib.hasSuffix "cross.patch" p)) (oldAttrs.patches or [ ]))
+              ++ [ (final.replaceVars ./tpm2-pytss.patch { crossPrefix = final.stdenv.hostPlatform.config; }) ];
+
+          });
     })
   ];
 
