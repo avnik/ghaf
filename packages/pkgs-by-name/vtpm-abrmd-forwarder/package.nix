@@ -4,7 +4,6 @@
   lib,
   stdenv,
   go,
-  makeWrapper,
   pkg-config,
   tpm2-tss,
   tpm2-abrmd,
@@ -17,7 +16,6 @@ stdenv.mkDerivation {
 
   nativeBuildInputs = [
     go
-    makeWrapper
     pkg-config
   ];
 
@@ -31,12 +29,13 @@ stdenv.mkDerivation {
     export HOME="$TMPDIR"
     export GOCACHE="$TMPDIR/go-cache"
     export GO111MODULE=on
-    cc -O2 -Wall -Wextra -o vtpm-tcti-device-helper-bin ./backend-helper.c $(pkg-config --cflags --libs tss2-tcti-tabrmd)
+    export CGO_ENABLED=1
     go build -trimpath -o vtpm-abrmd-forwarder \
       ./main.go \
       ./backend_helper.go \
       ./systemd_notify.go \
       ./tpm_proto.go \
+      ./tcti_tabrmd.go \
       ./vtpm_proxy.go
     runHook postBuild
   '';
@@ -45,14 +44,6 @@ stdenv.mkDerivation {
     runHook preInstall
     mkdir -p "$out/bin"
     install -m0755 vtpm-abrmd-forwarder "$out/bin/vtpm-abrmd-forwarder"
-    install -m0755 vtpm-tcti-device-helper-bin "$out/bin/vtpm-tcti-device-helper-bin"
-    makeWrapper "$out/bin/vtpm-tcti-device-helper-bin" "$out/bin/vtpm-tcti-device-helper" \
-      --prefix LD_LIBRARY_PATH : "${
-        lib.makeLibraryPath [
-          tpm2-abrmd
-          tpm2-tss
-        ]
-      }"
     runHook postInstall
   '';
 
