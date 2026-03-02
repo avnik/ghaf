@@ -32,7 +32,12 @@ stdenv.mkDerivation {
     export GOCACHE="$TMPDIR/go-cache"
     export GO111MODULE=on
     cc -O2 -Wall -Wextra -o vtpm-tcti-device-helper-bin ./backend-helper.c $(pkg-config --cflags --libs tss2-tcti-tabrmd)
-    go build -trimpath -o vtpm-abrmd-forwarder ./main.go
+    go build -trimpath -o vtpm-abrmd-forwarder \
+      ./main.go \
+      ./backend_helper.go \
+      ./systemd_notify.go \
+      ./tpm_proto.go \
+      ./vtpm_proxy.go
     runHook postBuild
   '';
 
